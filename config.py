@@ -1,3 +1,3 @@
-TOKEN='6473076144:AAHnMyuk8cIX4AtUBG8nI4wkudtqNz75a3U'
+TOKEN='7505833295:AAG1I-BPa_gMuUgJpWtxPbaNgzSp1qJdWL4'
 # Список ID администраторов
 admin_ids = [820372096]  # Замените на реальные ID администраторов
