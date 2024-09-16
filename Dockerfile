@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Команда запуска контейнера
-CMD ["/bin/bash", "-c", "python aiogram_run.py"]
+CMD ["/bin/bash", "-c", "python run.py"]
