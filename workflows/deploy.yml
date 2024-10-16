@@ -1,0 +1,33 @@
+name: Deploy Python Bot to Docker
+
+on:
+  push:
+    branches:
+      - main  # Деплой при пуше в ветку main
+
+jobs:
+  build:
+    runs-on: self-hosted  # Используем self-hosted GitHub Runner
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v1
+
+    - name: Build Docker image
+      run: docker build -t my-python-bot:latest .
+
+    - name: Stop and remove previous container
+      run: |
+        docker stop my-python-bot || true  # Останавливаем старый контейнер, если он существует
+        docker rm my-python-bot || true  # Удаляем старый контейнер, если он существует
+
+    - name: Run new container
+      run: |
+        docker run -d --name my-python-bot -p 8000:8000 my-python-bot:latest  # Запускаем новый контейнер
+
+    - name: Clean up old Docker images
+      run: |
+        docker image prune -f  # Очищаем неиспользуемые образы Docker

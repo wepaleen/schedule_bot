@@ -1,17 +1,28 @@
 import asyncio
 import logging
+import os
 
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import TOKEN
-from app.handlers import router
-
+from app.handlers import schedule_router, main_router, files_router  # Импортируем все роутеры
 
 
 async def main():
-    bot = Bot(token=TOKEN)
-    dp = Dispatcher()
-    dp.include_router(router)
+    os.makedirs("./utils/log", exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        filename="utils/log/bot_log.log",
+        filemode="w",
+        encoding="utf-8",
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+    bot = Bot(TOKEN)
+    dp = Dispatcher(storage=MemoryStorage())
+    dp.include_router(main_router)
+    dp.include_router(schedule_router)
+    dp.include_router(files_router)
     await dp.start_polling(bot)
 
 
@@ -21,4 +32,3 @@ if __name__ == '__main__':
         asyncio.run(main())
     except:
         print('Exit')
-
