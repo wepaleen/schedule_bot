@@ -20,23 +20,34 @@ class ScheduleStates(StatesGroup):
     CLOSE = State()
 
 # Временная база данных (в реальности заменить на полноценную базу)
-users_db = {'123456789': 'admin', '987654321': 'student', '820372096': 'Ruslan', '5866268316': 'Pedik'}  # user_id: role
-# Проверка авторизации
-async def is_authorized(user_id: int, role: str) -> bool:
-    return str(user_id) in users_db or str(role) in users_db
+# users_db = {'123456789': 'admin', '987654321': 'student', '820372096': 'Ruslan', '5866268316': 'Pedik'}  # user_id: role
+# # Проверка авторизации
+# async def is_authorized(user_id: int, role: str) -> bool:
+#     return str(user_id) in users_db or str(role) in users_db
 
+# Команда /start
+# @router.message(CommandStart())
+# async def cmd_start(message: Message, state: FSMContext):
+#     user_id = message.from_user.id
+#     role = message.from_user.full_name
+#     if await (user_id, role):
+#         await message.answer(f"Приветствую, {role}")
+#         await state.set_state(ScheduleStates.MAIN_MENU)
+#         await message.bot.send_chat_action(chat_id=message.from_user.id, action=ChatAction.TYPING)
+#         await message.answer(f'Выберите расписание:', reply_markup=kb.inline_main)
+#     else:
+#         await message.answer("У вас нет доступа.")
 # Команда /start
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     role = message.from_user.full_name
-    if await is_authorized(user_id, role):
-        await message.answer(f"Приветствую, {role}")
-        await state.set_state(ScheduleStates.MAIN_MENU)
-        await message.bot.send_chat_action(chat_id=message.from_user.id, action=ChatAction.TYPING)
-        await message.answer(f'Выберите расписание:', reply_markup=kb.inline_main)
-    else:
-        await message.answer("У вас нет доступа.")
+
+    # Приветствие пользователя
+    await message.answer(f"Приветствую, {role}")
+    await state.set_state(ScheduleStates.MAIN_MENU)
+    await message.bot.send_chat_action(chat_id=message.from_user.id, action=ChatAction.TYPING)
+    await message.answer(f'Выберите расписание:', reply_markup=kb.inline_main)
 
 
 # # Команда /now
