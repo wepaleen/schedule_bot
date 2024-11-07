@@ -5,8 +5,9 @@ import os
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from config import TOKEN
 from app.handlers import schedule_router, main_router, files_router  # Импортируем все роутеры
+from config import DBConfig
+from db.connection import get_engine, session_maker
 
 
 async def main():
@@ -18,7 +19,9 @@ async def main():
         encoding="utf-8",
         format="%(asctime)s %(levelname)s %(message)s",
     )
-    bot = Bot(TOKEN)
+    bot = Bot(os.environ.get("BOT_TOKEN"))
+    async_ = get_engine(DBConfig.url)
+    # session = session_maker(async_.engine)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(main_router)
     dp.include_router(schedule_router)

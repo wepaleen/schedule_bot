@@ -1,0 +1,49 @@
+name: Deploy Bot
+
+on:
+  push:
+    branches:
+      - main  # Запускать при push в основную ветку
+
+jobs:
+  delete-old-artifacts:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: schedule_bot
+      TAG: latest
+      CONTAINER: ScheduleBot
+    steps:
+      - name: Remove old container
+        run: |
+          docker ps -q --filter "name=$CONTAINER" | grep -q . && docker rm -f $CONTAINER || echo "Container does not exist"
+      - name: Remove old image
+        run: |
+          docker images -q $IMAGE:$TAG | grep -q . && docker rmi $IMAGE:$TAG || echo "Image does not exist"
+
+  build:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: schedule_bot
+      TAG: latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE:$TAG .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build  # Запускать после успешной сборки
+    env:
+      IMAGE: schedule_bot
+      TAG: latest
+    steps:
+      - name: Run container
+        run: |
+          docker run --restart always --network sc-network \
+          -v /etc/localtime:/etc/localtime \
+          -v logs:/app/utils/log \
+          -v bot-config:/app/utils/config \
+          -m 128M \
+          --name ScheduleBot -d $IMAGE:$TAG
