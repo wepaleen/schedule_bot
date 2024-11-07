@@ -15,10 +15,22 @@ jobs:
     steps:
       - name: Remove old container
         run: |
-          docker ps -q --filter "name=$CONTAINER" | grep -q . && docker rm -f $CONTAINER || echo "Container does not exist"
+          CONTAINER_ID=$(docker ps -q --filter "name=$CONTAINER")
+          if [ -n "$CONTAINER_ID" ]; then
+            echo "Removing old container $CONTAINER"
+            docker rm -f $CONTAINER
+          else
+            echo "Container does not exist"
+          fi
       - name: Remove old image
         run: |
-          docker images -q $IMAGE:$TAG | grep -q . && docker rmi $IMAGE:$TAG || echo "Image does not exist"
+          IMAGE_ID=$(docker images -q $IMAGE:$TAG)
+          if [ -n "$IMAGE_ID" ]; then
+            echo "Removing old image $IMAGE:$TAG"
+            docker rmi $IMAGE:$TAG
+          else
+            echo "Image does not exist"
+          fi
 
   build:
     runs-on: ubuntu-latest
@@ -28,6 +40,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Build Docker image
         run: |
           docker build -t $IMAGE:$TAG .
@@ -42,8 +55,7 @@ jobs:
       - name: Run container
         run: |
           docker run --restart always \
-          -v /etc/localtime:/etc/localtime \
-          -v logs:/app/utils/log \
-          -v bot-config:/app/utils/config \
+          -v $PWD/logs:/app/utils/log \
+          -v $PWD/bot-config:/app/config \
           -m 128M \
           --name ScheduleBot -d $IMAGE:$TAG
