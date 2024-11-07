@@ -20,7 +20,7 @@ async def main():
         format="%(asctime)s %(levelname)s %(message)s",
     )
     bot = Bot(os.environ.get("BOT_TOKEN"))
-    # async_ = get_engine(DBConfig.url)
+    async_ = get_engine(DBConfig.url)
     # session = session_maker(async_.engine)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(main_router)
