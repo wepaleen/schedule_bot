@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Run container
         run: |
-          docker run --restart always --network sc-network \
+          docker run --restart always \
           -v /etc/localtime:/etc/localtime \
           -v logs:/app/utils/log \
           -v bot-config:/app/utils/config \
