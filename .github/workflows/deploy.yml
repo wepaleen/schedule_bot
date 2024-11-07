@@ -3,7 +3,7 @@ name: Deploy Bot
 on:
   push:
     branches:
-      - main  # Запускать при push в основную ветку
+      - master  # Запускать при push в основную ветку
 
 jobs:
   delete-old-artifacts:
