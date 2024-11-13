@@ -1,18 +1,17 @@
+import os
+from dotenv import load_dotenv, find_dotenv
 
-TOKEN='7413059401:AAEdBL7cCPcoqjSTT3CKvn-LeFytuseruAI'
-# Список ID администраторов
-admin_ids = [820372096]  # Замените на реальные ID администраторов
-# Подключение к БД
+load_dotenv(find_dotenv("text.env"))
 
-def db_connection():
-    address = f"postgresql://{username}:{password}@{localhost}/{dbname}"
-    return address
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
+ADMINS = [int(admin_id) for admin_id in os.getenv("ADMINS").split(",")]
 
 # имя пользователя БД
 username = "admin"
 # Пароль к БД
-password = "234dfgdf"
+password = "234de32fgdf"
 # Адрес хоста с БД
 localhost = "45.151.30.108"
 # Имя БД
-dbname = "tg_db_postgres"
+dbname = "schedule_db"

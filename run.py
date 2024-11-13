@@ -3,13 +3,12 @@ import logging
 import os
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
-
-from config import TOKEN
-from app.handlers import schedule_router, main_router, files_router  # Импортируем все роутеры
-
+from config import BOT_TOKEN
+from handlers import schedule, admin
 
 async def main():
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher()
     os.makedirs("./utils/log", exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
@@ -18,17 +17,11 @@ async def main():
         encoding="utf-8",
         format="%(asctime)s %(levelname)s %(message)s",
     )
-    bot = Bot(TOKEN)
-    dp = Dispatcher(storage=MemoryStorage())
-    dp.include_router(main_router)
-    dp.include_router(schedule_router)
-    dp.include_router(files_router)
+
+    dp.include_router(schedule.router)
+    dp.include_router(admin.router)
+
     await dp.start_polling(bot)
 
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    try:
-        asyncio.run(main())
-    except:
-        print('Exit')
+if __name__ == "__main__":
+    asyncio.run(main())
