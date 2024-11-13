@@ -8,7 +8,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.orm import Session
 
-from models import Group, Schedule, get_db_session
+from models import Group, Schedule, get_db_session, SessionLocal
 from config import ADMINS
 
 router = Router()
@@ -133,3 +133,46 @@ def validate_time_format(time_str: str) -> bool:
         return True
     except ValueError:
         return False
+
+# Обработка выбора элемента для редактирования
+@router.callback_query(F.data.startswith("edit:"))
+async def edit_schedule_item(call: CallbackQuery):
+    data = call.data.split(":")
+    schedule_id = int(data[1])
+
+    session = SessionLocal()
+    item = session.query(Schedule).get(schedule_id)
+    if not item:
+        await call.message.answer("Элемент расписания не найден.")
+        return
+
+    # Запрос новой информации от пользователя
+    await call.message.answer(
+        f"Текущая запись:\n{item.time} - {item.subject} - {item.teacher} - {item.building} - {item.floor} - {item.room}\n\n"
+        "Введите новую информацию в формате:\n"
+        "`время, предмет, преподаватель, здание, этаж, аудитория`"
+    )
+    router.message.register(get_new_schedule_data, F.reply_to_message_id == call.message.message_id, state=schedule_id)
+
+
+async def get_new_schedule_data(message: Message, schedule_id: int):
+    data = message.text.split(", ")
+    if len(data) != 6:
+        await message.answer("Неверный формат. Попробуйте снова.")
+        return
+
+    new_time, new_subject, new_teacher, new_building, new_floor, new_room = data
+    session = SessionLocal()
+    item = session.query(Schedule).get(schedule_id)
+
+    if item:
+        item.time = new_time
+        item.subject = new_subject
+        item.teacher = new_teacher
+        item.building = new_building
+        item.floor = new_floor
+        item.room = new_room
+        session.commit()
+        await message.answer("Расписание успешно обновлено.")
+    else:
+        await message.answer("Ошибка при обновлении расписания.")
