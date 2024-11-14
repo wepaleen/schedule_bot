@@ -7,6 +7,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.orm import Session
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 
 from models import Group, Schedule, get_db_session, SessionLocal
 from config import ADMINS
@@ -18,6 +20,8 @@ class AdminState(StatesGroup):
     ADD_SCHEDULE_GROUP = State()
     ADD_SCHEDULE_DAY = State()
     ADD_SCHEDULE_DETAILS = State()
+    EDIT_SCHEDULE = State()  # Добавленное состояние для редактирования
+
 
 # Проверка, является ли пользователь администратором
 def is_admin(user_id: int) -> bool:
@@ -134,45 +138,115 @@ def validate_time_format(time_str: str) -> bool:
     except ValueError:
         return False
 
-# Обработка выбора элемента для редактирования
-@router.callback_query(F.data.startswith("edit:"))
-async def edit_schedule_item(call: CallbackQuery):
-    data = call.data.split(":")
-    schedule_id = int(data[1])
 
-    session = SessionLocal()
-    item = session.query(Schedule).get(schedule_id)
-    if not item:
-        await call.message.answer("Элемент расписания не найден.")
+@router.callback_query(F.data == "edit_schedule")
+async def cmd_view_schedule(call: CallbackQuery):
+    with SessionLocal() as session:
+        schedules = session.query(Schedule).all()
+
+    if not schedules:
+        await call.message.answer("Нет расписаний для отображения.")
         return
 
-    # Запрос новой информации от пользователя
+    # Создаем клавиатуру вручную
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+
+    # Добавляем кнопки по 2 в ряд
+    buttons = []
+    for schedule in schedules:
+        button = InlineKeyboardButton(
+            text=f"{schedule.subject} ({schedule.time})",
+            callback_data=f"edit:{schedule.id}"
+        )
+        buttons.append(button)
+
+        # Добавляем кнопки в ряды по 2 кнопки
+        if len(buttons) == 2:
+            keyboard.inline_keyboard.append(buttons)
+            buttons = []
+
+    # Добавляем оставшуюся кнопку, если она нечетная
+    if buttons:
+        keyboard.inline_keyboard.append(buttons)
+
+    # Отправляем сообщение с клавиатурой
+    await call.message.answer(
+        "Выберите расписание для редактирования:",
+        reply_markup=keyboard
+    )
+
+
+# Обработка выбора расписания для редактирования
+@router.callback_query(F.data.startswith("edit:"))
+async def edit_schedule_item(call: CallbackQuery, state: FSMContext):
+    try:
+        schedule_id = int(call.data.split(":")[1])
+    except ValueError:
+        await call.message.answer("Некорректный идентификатор расписания.")
+        return
+
+    with SessionLocal() as session:
+        item = session.query(Schedule).get(schedule_id)
+        if not item:
+            await call.message.answer("Элемент расписания не найден.")
+            return
+
+    # Сохранение ID расписания в состоянии
+    await state.update_data(schedule_id=schedule_id)
     await call.message.answer(
         f"Текущая запись:\n{item.time} - {item.subject} - {item.teacher} - {item.building} - {item.floor} - {item.room}\n\n"
         "Введите новую информацию в формате:\n"
-        "`время, предмет, преподаватель, здание, этаж, аудитория`"
+        "`время, предмет, преподаватель, здание, этаж, аудитория`",
+        parse_mode="Markdown"
     )
-    router.message.register(get_new_schedule_data, F.reply_to_message_id == call.message.message_id, state=schedule_id)
+    await state.set_state(AdminState.EDIT_SCHEDULE)
 
 
-async def get_new_schedule_data(message: Message, schedule_id: int):
+# Обработка новых данных для редактирования расписания
+@router.message(AdminState.EDIT_SCHEDULE)
+async def get_new_schedule_data(message: Message, state: FSMContext):
     data = message.text.split(", ")
+
+    # Проверка формата ввода
     if len(data) != 6:
-        await message.answer("Неверный формат. Попробуйте снова.")
+        await message.answer("Неверный формат. Введите данные в формате:\n"
+                             "`время, предмет, преподаватель, здание, этаж, аудитория`")
         return
 
     new_time, new_subject, new_teacher, new_building, new_floor, new_room = data
-    session = SessionLocal()
-    item = session.query(Schedule).get(schedule_id)
 
-    if item:
-        item.time = new_time
-        item.subject = new_subject
-        item.teacher = new_teacher
-        item.building = new_building
-        item.floor = new_floor
-        item.room = new_room
-        session.commit()
-        await message.answer("Расписание успешно обновлено.")
-    else:
-        await message.answer("Ошибка при обновлении расписания.")
+    # Проверка корректности времени (например, формат HH:MM)
+    if not validate_time_format(new_time):
+        await message.answer("Некорректный формат времени. Попробуйте снова.")
+        return
+
+    schedule_data = await state.get_data()
+    schedule_id = schedule_data.get('schedule_id')
+
+    with SessionLocal() as session:
+        item = session.query(Schedule).get(schedule_id)
+        if item:
+            item.time = new_time
+            item.subject = new_subject
+            item.teacher = new_teacher
+            item.building = new_building
+            item.floor = new_floor
+            item.room = new_room
+            session.commit()
+            await message.answer("Расписание успешно обновлено.")
+        else:
+            await message.answer("Ошибка при обновлении расписания.")
+
+    await state.clear()
+
+
+def validate_time_format(time_str):
+    """Проверяет, что время в формате HH:MM"""
+    try:
+        parts = time_str.split(":")
+        if len(parts) != 2:
+            return False
+        hours, minutes = map(int, parts)
+        return 0 <= hours < 24 and 0 <= minutes < 60
+    except ValueError:
+        return False

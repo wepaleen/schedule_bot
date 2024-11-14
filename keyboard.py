@@ -6,7 +6,7 @@ def main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Расписание на сегодня", callback_data="today_schedule"),
          InlineKeyboardButton(text="Расписание на неделю", callback_data="week_schedule")],
-        [InlineKeyboardButton(text="Редактировать расписание", callback_data="edit:")]
+        [InlineKeyboardButton(text="Редактировать расписание", callback_data="edit_schedule")]
     ])
 
 def group_keyboard(groups, for_today=True):
